@@ -1,0 +1,207 @@
+---
+title: "Lab 01 — Introduction to Linux & ROS 2 Installation"
+date: 2026-08-26
+categories: [Module 01]
+tags: [ros2, jazzy, linux, setup, lab]
+pin: false
+---
+
+## Lab 01 — Linux & ROS 2 Foundations
+
+## Part 1: Getting Familiar with Linux · Part 2: Installing ROS 2 Jazzy
+
+**Estimated time:** 90–120 minutes (lab period)
+**Prerequisites:** Ubuntu 24.04 LTS running on your assigned lab computer (native, VM, or as directed by your instructor)
+**Submission:** Demonstrate in lab
+
+*Instructor note: this lab has students perform a native ROS 2 install rather than working inside the course's Docker environment. That's a deliberate one-time exercise — understanding what actually goes into a working ROS 2 install makes the Docker container far less of a black box once we start using it in Module 2. If your lab computers are Docker-only going forward, consider running this in a throwaway VM or container so it doesn't need to be undone.*
+
+---
+
+## Part 1: Getting Familiar with Linux
+
+Work through each task below in order. Don't skip ahead — later tasks assume you've done the earlier ones. Use `nano` for any file editing in this part.
+
+### 1.1 — Orientation
+
+1. Open a terminal.
+2. Run `pwd`. - this is your home directory.
+3. Run `whoami`. Confirm it matches your username.
+4. Run `ls -a` in your home directory. Notice the entries starting with `.` — these are hidden files (like `.bashrc`). We'll come back to why the shell hides these by default.
+
+### 1.2 — Navigating and Creating Structure
+
+1. Create a directory called `ras212_lab1`.
+2. Move into it (`cd`).
+3. Inside it, create three subdirectories: `notes`, `scripts`, `sandbox`.
+4. Confirm the structure with `ls`, then again with `ls -l` — note the difference in what's displayed.
+5. Move into `sandbox`.
+
+### 1.3 — Files, Copying, and Moving
+
+1. Inside `sandbox`, create an empty file called `draft.txt` using `touch`.
+2. Open it in `nano` and type one sentence about why you're taking this course. Save and exit.
+3. Copy `draft.txt` to a new file called `draft_backup.txt`.
+4. Move `draft_backup.txt` into the `notes` folder (one directory up).
+5. Rename the original `draft.txt` to `reflection.txt` (still using `mv`).
+6. Confirm both files ended up where you expect, using `ls` in each folder.
+
+### 1.4 — Permissions
+
+1. Run `ls -l reflection.txt` and write down the permission string you see (e.g., `-rw-r--r--`).
+2. Use `chmod` to make the file executable for the owner only, and confirm the change with `ls -l` again.
+3. Use `chmod` to remove write permission for yourself, then try opening it in `nano` and attempt to save a change. What happens?
+4. Restore your write permission so you can continue using the file.
+5. **Reflection:** In your own words, what do the three permission groups (owner/group/other) control, and why does Linux separate them instead of having one universal setting?
+
+### 1.5 — sudo and System-Level Commands
+
+1. Run `sudo apt update`. If prompted, enter your password — note that nothing appears on screen as you type; that's normal.
+2. Run `whoami` again, immediately after a `sudo` command. Confirm you're still your normal user, not root — `sudo` only elevates the *single command* it's attached to.
+3. **Reflection:** Why might it be dangerous if `sudo` permanently switched you to the root user instead of elevating one command at a time?
+
+### 1.6 — Piping and Filtering (a first taste of `grep`)
+
+1. Run `ls -l /etc` and observe how much output scrolls by.
+2. Run `ls -l /etc | grep conf` — notice how piping (`|`) filters the first command's output through `grep`.
+3. Run `history | grep chmod` to find every `chmod` command you've run this session.
+4. **Reflection:** What does the `|` symbol actually do, in your own words?
+
+### 1.7 — Editing with `vim` (just enough to survive)
+
+1. Open `reflection.txt` with `vim` instead of `nano`.
+2. Press `i` to enter insert mode, add one more sentence, then press `Esc` to return to normal mode.
+3. Type `:wq` and press Enter to save and quit.
+4. If you get stuck at any point, remember: `Esc`, then `:q!` and Enter will quit *without* saving — a safe escape hatch.
+5. **Reflection:** What's one thing that felt genuinely disorienting about `vim` compared to `nano`? That's normal — the goal today is survival, not mastery.
+
+### Part 1 Checkpoint
+
+Before moving to Part 2, confirm you can:
+- [ ] Navigate to any directory using `cd`, `pwd`, and `ls`
+- [ ] Create, copy, move, and rename files and folders
+- [ ] Read a permission string and explain what it means
+- [ ] Use `sudo` for a single elevated command
+- [ ] Use `grep` to filter another command's output
+- [ ] Open, edit, save, and exit a file in both `nano` and `vim`
+
+---
+
+## Part 2: Installing ROS 2 Jazzy Jalisco
+
+You'll install ROS 2 Jazzy by following the **official ROS 2 documentation**, not a copy-pasted script — reading and following official docs is a skill you'll need constantly in this field. Keep the docs site open in a browser tab alongside your terminal:
+
+**🔗 Official guide:** [docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
+
+Work through the guide's steps directly on that page. The outline below matches its structure, so use it to check your progress — but read the actual page for each step's full explanation.
+
+### 2.1 — Set Your Locale
+
+Confirm your system is configured for UTF-8, since ROS 2 depends on it:
+
+```bash
+locale  # check current settings
+
+sudo apt update && sudo apt install locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+locale  # confirm the change took effect
+```
+
+### 2.2 — Enable Required Repositories
+
+```bash
+sudo apt install software-properties-common
+sudo add-apt-repository universe
+```
+
+**Checkpoint:** why does this step exist? (Hint: think back to Module 1's discussion of what a repository actually is.)
+
+### 2.3 — Add the ROS 2 apt Repository
+
+Follow the official guide's exact commands for adding the ROS 2 GPG key and repository — this step changes occasionally as ROS updates its tooling, so the live docs page is more reliable than any command copied from elsewhere, including this lab sheet. As of this writing, it looks like:
+
+```bash
+sudo apt update && sudo apt install curl -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+```
+
+**Reflection:** what is this GPG key actually for? (Relate this back to Module 1's discussion of trusting software sources.)
+
+### 2.4 — Install ROS 2 Jazzy Desktop
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install ros-jazzy-desktop
+```
+
+This step downloads a lot of packages and can take several minutes — a good moment to re-read Module 1's notes on what a package actually is while you wait.
+
+### 2.5 — Install Development Tools
+
+```bash
+sudo apt install ros-dev-tools
+```
+
+This gives you `colcon`, `rosdep`, and other tools you'll start using in Module 2.
+
+### 2.6 — Source Your Installation
+
+ROS 2 doesn't activate itself automatically — you have to tell your shell where to find it, in every new terminal, using the environment-variable concept from Module 1:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+```
+
+To avoid running this manually every time, add it to your shell's startup file:
+
+```bash
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Checkpoint:** open a brand-new terminal window (don't reuse this one) and confirm ROS 2 is available without you typing the `source` command again.
+
+### 2.7 — Verify the Install
+
+```bash
+printenv | grep ROS
+```
+
+Confirm `ROS_DISTRO` reports `jazzy`. Then run the classic two-terminal test:
+
+**Terminal 1:**
+```bash
+ros2 run demo_nodes_cpp talker
+```
+
+**Terminal 2:**
+```bash
+ros2 run demo_nodes_py listener
+```
+
+If Terminal 1 shows messages being published and Terminal 2 shows them being received, your installation is working end to end — one C++ node and one Python node, talking to each other over ROS 2's middleware, using nothing you built yourself. That's exactly the mental picture from today's Part B lecture, now running live on your own machine.
+
+### Part 2 Checkpoint
+
+Before ending today's lab, confirm you can:
+- [ ] Explain what `ROS_DISTRO` reports and why it matters
+- [ ] Open a new terminal and have ROS 2 available without re-sourcing manually
+- [ ] Run the talker/listener test successfully in two terminals
+- [ ] Point to the specific line in the official docs that added the ROS 2 apt repository, and explain what it did
+
+---
+
+## Submission
+
+Submit (as directed by your instructor):
+1. A screenshot of your working talker/listener test (both terminals visible)
+2. Written answers to the five **Reflection** questions above (Sections 1.4, 1.5, 1.6, 1.7, and 2.3)
+3. Confirmation that all checkboxes in both Part 1 and Part 2 checkpoints are checked
+
+**Troubleshooting reminder:** if something doesn't work, resist the urge to just re-run the same command hoping it fixes itself. Re-read the error message out loud, check which step you're actually on, and compare against the official docs page — this is the exact troubleshooting habit we'll be building all semester.
