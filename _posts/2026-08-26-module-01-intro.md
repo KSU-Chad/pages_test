@@ -52,7 +52,7 @@ By the end of this module, you will be able to:
 
 ## 5. Linux History
 
-[Linux]([https://google.com](https://en.wikipedia.org/wiki/History_of_Linux) "The History of Linux") traces back to Unix, an operating system built in the 1970s at Bell Labs. In 1991, a Finnish student named Linus Torvalds wrote a free kernel as a personal project and released it to the world. Combined with tools from the GNU Project (started earlier by Richard Stallman), it became what we now call "Linux," though technically "GNU/Linux" is more accurate — the GNU tools provide the commands, Linux provides the kernel underneath them.
+[Linux](https://en.wikipedia.org/wiki/History_of_Linux) "The History of Linux") traces back to Unix, an operating system built in the 1970s at Bell Labs. In 1991, a Finnish student named Linus Torvalds wrote a free kernel as a personal project and released it to the world. Combined with tools from the GNU Project (started earlier by Richard Stallman), it became what we now call "Linux," though technically "GNU/Linux" is more accurate — the GNU tools provide the commands, Linux provides the kernel underneath them.
 
 ---
 
