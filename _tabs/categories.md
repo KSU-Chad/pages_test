@@ -1,6 +1,6 @@
 ---
 # the default layout is 'page'
-layout: categories
+layout: Modules
 icon: fas fa-diagram-project
 order: 1
 
