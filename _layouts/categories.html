@@ -1,0 +1,170 @@
+---
+layout: page
+# All the Categories of posts
+---
+
+{% include lang.html %}
+
+{% comment %}
+  This layout builds the main Modules tab. It is a project-local override of
+  Chirpy's categories layout.
+
+  Post front matter defines the hierarchy. For example:
+    categories: [Module 01, Introduction]
+
+  The first value becomes the large module card. The second value becomes a row
+  inside that card. To add future modules, create posts with the same two-level
+  pattern; this file discovers the categories automatically.
+
+  A second-level category containing one post links straight to that post. A
+  category containing multiple posts links to its category listing instead.
+  Jekyll category names are global, so reusing a name such as `Introduction` in
+  several modules makes those posts members of the same category. Use unique
+  second-level names if each one must always retain a direct single-post link.
+{% endcomment %}
+{% assign HEAD_PREFIX = 'h_' %}
+{% assign LIST_PREFIX = 'l_' %}
+
+{% assign group_index = 0 %}
+
+{% assign sort_categories = site.categories | sort %}
+
+{% for category in sort_categories %}
+  {% assign category_name = category | first %}
+  {% assign posts_of_category = category | last %}
+  {% assign first_post = posts_of_category | first %}
+
+  {% comment %}
+    Only create a large card when this category is the first category on its
+    posts. This prevents second-level categories from becoming duplicate cards.
+  {% endcomment %}
+  {% if category_name == first_post.categories[0] %}
+    {% assign sub_categories = '' | split: '' %}
+
+    {% for post in posts_of_category %}
+      {% assign second_category = post.categories[1] %}
+      {% if second_category %}
+        {% unless sub_categories contains second_category %}
+          {% assign sub_categories = sub_categories | push: second_category %}
+        {% endunless %}
+      {% endif %}
+    {% endfor %}
+
+    {% assign sub_categories = sub_categories | sort %}
+    {% assign sub_categories_size = sub_categories | size %}
+
+    <div class='card categories'>
+      <!-- top-category -->
+      <div
+        id='{{ HEAD_PREFIX }}{{ group_index }}'
+        class='card-header d-flex justify-content-between hide-border-bottom'
+      >
+        <span class='ms-2'>
+          <i class='far fa-folder{% if sub_categories_size > 0 %}-open{% endif %} fa-fw'></i>
+
+          {% capture category_url %}/categories/{{ category_name | slugify | url_encode }}/{% endcapture %}
+          <a href='{{ category_url | relative_url }}' class='mx-2'>{{ category_name }}</a>
+
+          <!-- content count -->
+          {% assign top_posts_size = site.categories[category_name] | size %}
+          <span class='text-muted small font-weight-light'>
+            {% if sub_categories_size > 0 %}
+              {{ sub_categories_size }}
+              {% if sub_categories_size > 1 %}
+                {{
+                  site.data.locales[lang].categories.category_measure.plural
+                  | default: site.data.locales[lang].categories.category_measure
+                }}
+              {% else %}
+                {{
+                  site.data.locales[lang].categories.category_measure.singular
+                  | default: site.data.locales[lang].categories.category_measure
+                }}
+              {% endif -%}
+              ,
+            {% endif %}
+
+            {{ top_posts_size }}
+
+            {% if top_posts_size > 1 %}
+              {{
+                site.data.locales[lang].categories.post_measure.plural
+                | default: site.data.locales[lang].categories.post_measure
+              }}
+            {% else %}
+              {{
+                site.data.locales[lang].categories.post_measure.singular
+                | default: site.data.locales[lang].categories.post_measure
+              }}
+            {% endif %}
+          </span>
+        </span>
+
+        <!-- arrow -->
+        {% if sub_categories_size > 0 %}
+          <a
+            href='#{{ LIST_PREFIX }}{{ group_index }}'
+            data-bs-toggle='collapse'
+            aria-expanded='true'
+            aria-label='{{ HEAD_PREFIX }}{{ group_index }}-trigger'
+            class='category-trigger hide-border-bottom'
+          >
+            <i class='fas fa-fw fa-angle-down'></i>
+          </a>
+        {% else %}
+          <span data-bs-toggle='collapse' class='category-trigger hide-border-bottom disabled'>
+            <i class='fas fa-fw fa-angle-right'></i>
+          </span>
+        {% endif %}
+      </div>
+      <!-- .card-header -->
+
+      <!-- Sub-categories -->
+      {% if sub_categories_size > 0 %}
+        <div id='{{ LIST_PREFIX }}{{ group_index }}' class='collapse show' aria-expanded='true'>
+          <ul class='list-group'>
+            {% for sub_category in sub_categories %}
+              {% assign sub_category_posts = site.categories[sub_category] %}
+              {% assign posts_size = sub_category_posts | size %}
+
+              {% comment %}
+                Skip the unnecessary listing-page click when there is only one
+                destination. Keep the listing page when multiple posts share
+                this subcategory so the visitor can choose among them.
+              {% endcomment %}
+              {% if posts_size == 1 %}
+                {% assign sub_category_url = sub_category_posts.first.url %}
+              {% else %}
+                {% capture sub_category_url %}/categories/{{ sub_category | slugify | url_encode }}/{% endcapture %}
+              {% endif %}
+
+              <li class='list-group-item'>
+                <i class='far fa-folder fa-fw'></i>
+                <a href='{{ sub_category_url | relative_url }}' class='mx-2'>{{ sub_category }}</a>
+
+                <span class='text-muted small font-weight-light'>
+                  {{ posts_size }}
+
+                  {% if posts_size > 1 %}
+                    {{
+                      site.data.locales[lang].categories.post_measure.plural
+                      | default: site.data.locales[lang].categories.post_measure
+                    }}
+                  {% else %}
+                    {{
+                      site.data.locales[lang].categories.post_measure.singular
+                      | default: site.data.locales[lang].categories.post_measure
+                    }}
+                  {% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+    <!-- .card -->
+
+    {% assign group_index = group_index | plus: 1 %}
+  {% endif %}
+{% endfor %}

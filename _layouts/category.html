@@ -1,0 +1,43 @@
+---
+layout: page
+# The Category layout
+---
+
+{% include lang.html %}
+
+{% comment %}
+  This layout renders an individual module/category page, such as
+  /modules/module-01/. It is a local override of Chirpy's category layout.
+
+  Jekyll supplies the category's posts in `page.posts`. Sorting by `date` puts
+  them in oldest-to-newest order. If `module_post_order` in _config.yml is
+  anything except `oldest`, the list is reversed to newest-to-oldest.
+  Change the setting in _config.yml rather than editing this sorting code.
+{% endcomment %}
+{% assign ordered_posts = page.posts | sort: 'date' %}
+{% unless site.module_post_order == 'oldest' %}
+  {% assign ordered_posts = ordered_posts | reverse %}
+{% endunless %}
+
+<div id='page-category'>
+  <h1 class='ps-lg-2'>
+    <i class='far fa-folder-open fa-fw text-muted'></i>
+    {{ page.title }}
+    <span class='lead text-muted ps-2'>{{ page.posts | size }}</span>
+  </h1>
+
+  {% comment %}
+    Each row links to the real post and shows its date. `ordered_posts`, rather
+    than the original `page.posts`, is used so the configuration above controls
+    the visible order.
+  {% endcomment %}
+  <ul class='content ps-0'>
+    {% for post in ordered_posts %}
+      <li class='d-flex justify-content-between px-md-3'>
+        <a href='{{ post.url | relative_url }}'>{{ post.title }}</a>
+        <span class='dash flex-grow-1'></span>
+        {% include datetime.html date=post.date class='text-muted small text-nowrap' lang=lang %}
+      </li>
+    {% endfor %}
+  </ul>
+</div>
