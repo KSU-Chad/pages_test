@@ -85,7 +85,7 @@ By the end of today, you will be able to:
 - Lets you go back to any previous version, see exactly what changed, and by whom
 - Not just a backup — a full history, with the ability to branch off and merge changes back
 
-![Typical_final_doc](images/final_doc.png)
+![Typical_final_doc](assets/final_doc.png)
 
 ---
 
