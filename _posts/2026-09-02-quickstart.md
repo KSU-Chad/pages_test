@@ -29,7 +29,7 @@ Click the Start Menu, type **cmd**, and open **Command Prompt**.
 Type this exactly, then press Enter:
 
 ```
-cd C:\Public\RAS212\sim-pilot
+cd C:\Users\Public\RAS212\sim-pilot
 ```
 
 ## 5. Start the environment
