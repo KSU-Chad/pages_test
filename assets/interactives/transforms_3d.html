@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Homogeneous Transform Explorer — RAS 212</title>
+<style>
+  :root {
+    --accent: #512888;
+    --accent-light: #E6E1EF;
+    --bg: #ffffff;
+    --surface: #F4F1F8;
+    --text: #1B1B1B;
+    --text-muted: #5F5E5A;
+    --border: #D3D1C7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #AFA9EC;
+      --accent-light: #26215C;
+      --bg: #1a1a1a;
+      --surface: #232323;
+      --text: #EDEDED;
+      --text-muted: #A0A0A0;
+      --border: #3a3a3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Lucida Sans", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    line-height: 1.6;
+  }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  p.lead { color: var(--text-muted); margin-top: 0; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row label {
+    width: 56px;
+    font-size: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .row output {
+    min-width: 52px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: "Courier New", monospace;
+  }
+  .axis-select { display: flex; gap: 8px; margin-bottom: 14px; }
+  .axis-select button {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .axis-select button.active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .toggles { display: flex; gap: 8px; margin-top: 4px; }
+  .toggles button {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 10px 8px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .toggles button.active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  svg { width: 100%; height: auto; display: block; margin: 1rem 0; }
+  .matrix-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .matrix-box .caption { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .matrix-box pre {
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.6;
+  }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); margin-top: 0.5rem; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 3px; display: inline-block; border-radius: 2px; }
+  footer { margin-top: 2.5rem; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>3D Homogeneous Transform Explorer</h1>
+<p class="lead">RAS 212 — Module 4: same idea as the 2D version, one dimension up. Pick a rotation axis, drag the sliders, and watch the 4&times;4 matrix and the transformed frame move together. Drawn in isometric projection since we're not pulling in a 3D graphics library for a teaching tool.</p>
+
+<div class="panel">
+  <div class="axis-select">
+    <button id="axis-x" class="active">Rotate about X</button>
+    <button id="axis-y">Rotate about Y</button>
+    <button id="axis-z">Rotate about Z</button>
+  </div>
+  <div class="row">
+    <label for="theta">&theta;</label>
+    <input type="range" id="theta" min="-180" max="180" step="5" value="35">
+    <output id="theta-out">35&deg;</output>
+  </div>
+  <div class="row">
+    <label for="xt">x_t</label>
+    <input type="range" id="xt" min="-2" max="2" step="0.25" value="1">
+    <output id="xt-out">1.00</output>
+  </div>
+  <div class="row">
+    <label for="yt">y_t</label>
+    <input type="range" id="yt" min="-2" max="2" step="0.25" value="0.5">
+    <output id="yt-out">0.50</output>
+  </div>
+  <div class="row">
+    <label for="zt">z_t</label>
+    <input type="range" id="zt" min="-2" max="2" step="0.25" value="0.5">
+    <output id="zt-out">0.50</output>
+  </div>
+  <div class="toggles">
+    <button id="order-tr" class="active">Rotate, then translate</button>
+    <button id="order-rt">Translate, then rotate</button>
+  </div>
+</div>
+
+<svg viewBox="0 0 300 280">
+  <g id="scene" transform="translate(150,160)"></g>
+</svg>
+<div class="legend">
+  <span><span class="swatch" style="background:#7F4FE0"></span>transformed x&prime;</span>
+  <span><span class="swatch" style="background:#0F6E56"></span>transformed y&prime;</span>
+  <span><span class="swatch" style="background:#D85A30"></span>transformed z&prime;</span>
+  <span><span class="swatch" style="background:var(--text-muted)"></span>original frame</span>
+</div>
+
+<div class="matrix-box">
+  <div class="caption">Homogeneous transform matrix T (4&times;4)</div>
+  <pre id="matrix"></pre>
+</div>
+
+<footer>
+  Built for K-State Salina RAS 212. This is the 3D version of what tf2 computes for every parent-to-child frame on a real robot &mdash; the same 4&times;4 matrix, just applied automatically for every frame in the TF tree instead of one you drag sliders for.
+</footer>
+
+<script>
+const SCALE = 34;
+const ISO_COS = Math.cos(Math.PI / 6);
+const ISO_SIN = Math.sin(Math.PI / 6);
+
+function project(x, y, z) {
+  return {
+    sx: (x - z) * ISO_COS,
+    sy: (x + z) * ISO_SIN - y
+  };
+}
+
+function matVec(m, v) {
+  return [
+    m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2],
+    m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2],
+    m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]
+  ];
+}
+
+function rotMatrix(axis, rad) {
+  const c = Math.cos(rad), s = Math.sin(rad);
+  if (axis === 'x') return [[1,0,0],[0,c,-s],[0,s,c]];
+  if (axis === 'y') return [[c,0,s],[0,1,0],[-s,0,c]];
+  return [[c,-s,0],[s,c,0],[0,0,1]];
+}
+
+const thetaEl = document.getElementById('theta');
+const xtEl = document.getElementById('xt');
+const ytEl = document.getElementById('yt');
+const ztEl = document.getElementById('zt');
+const thetaOut = document.getElementById('theta-out');
+const xtOut = document.getElementById('xt-out');
+const ytOut = document.getElementById('yt-out');
+const ztOut = document.getElementById('zt-out');
+const btnTR = document.getElementById('order-tr');
+const btnRT = document.getElementById('order-rt');
+const axisButtons = { x: document.getElementById('axis-x'), y: document.getElementById('axis-y'), z: document.getElementById('axis-z') };
+const scene = document.getElementById('scene');
+const matrixEl = document.getElementById('matrix');
+
+let order = 'tr';
+let axis = 'x';
+
+const NS = 'http://www.w3.org/2000/svg';
+function line(x1,y1,x2,y2,stroke,width,dash) {
+  const l = document.createElementNS(NS,'line');
+  l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+  l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+  l.setAttribute('stroke',stroke); l.setAttribute('stroke-width',width);
+  if (dash) l.setAttribute('stroke-dasharray',dash);
+  return l;
+}
+function circle(cx,cy,r,fill) {
+  const c = document.createElementNS(NS,'circle');
+  c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r); c.setAttribute('fill',fill);
+  return c;
+}
+
+function setActiveButtons() {
+  btnTR.classList.toggle('active', order === 'tr');
+  btnRT.classList.toggle('active', order === 'rt');
+  Object.keys(axisButtons).forEach(k => axisButtons[k].classList.toggle('active', k === axis));
+}
+
+function update() {
+  const deg = parseFloat(thetaEl.value);
+  const xt = parseFloat(xtEl.value), yt = parseFloat(ytEl.value), zt = parseFloat(ztEl.value);
+  thetaOut.textContent = Math.round(deg) + '\u00b0';
+  xtOut.textContent = xt.toFixed(2);
+  ytOut.textContent = yt.toFixed(2);
+  ztOut.textContent = zt.toFixed(2);
+
+  const rad = deg * Math.PI / 180;
+  const R = rotMatrix(axis, rad);
+  let t;
+  if (order === 'tr') {
+    t = [xt, yt, zt];
+  } else {
+    t = matVec(R, [xt, yt, zt]);
+  }
+
+  while (scene.firstChild) scene.removeChild(scene.firstChild);
+
+  const originWorld = project(0,0,0);
+  const axesWorld = [[1,0,0],[0,1,0],[0,0,1]].map(v => project(v[0]*SCALE, v[1]*SCALE, v[2]*SCALE));
+  const worldColors = 'var(--text-muted)';
+  axesWorld.forEach(p => scene.appendChild(line(originWorld.sx, -originWorld.sy, p.sx, -p.sy, worldColors, 1.5, '3,3')));
+  scene.appendChild(circle(originWorld.sx, -originWorld.sy, 2.5, worldColors));
+
+  const originT = project(t[0]*SCALE, t[1]*SCALE, t[2]*SCALE);
+  const axisVecs = [[1,0,0],[0,1,0],[0,0,1]];
+  const colors = ['#7F4FE0', '#0F6E56', '#D85A30'];
+  axisVecs.forEach((v, i) => {
+    const rotated = matVec(R, v);
+    const tip = project(t[0]*SCALE + rotated[0]*SCALE, t[1]*SCALE + rotated[1]*SCALE, t[2]*SCALE + rotated[2]*SCALE);
+    scene.appendChild(line(originT.sx, -originT.sy, tip.sx, -tip.sy, colors[i], 2.5));
+  });
+  scene.appendChild(circle(originT.sx, -originT.sy, 3, 'var(--text)'));
+
+  const r = n => n.toFixed(2).padStart(6, ' ');
+  matrixEl.textContent =
+    `[ ${r(R[0][0])} ${r(R[0][1])} ${r(R[0][2])} ${r(t[0])} ]\n` +
+    `[ ${r(R[1][0])} ${r(R[1][1])} ${r(R[1][2])} ${r(t[1])} ]\n` +
+    `[ ${r(R[2][0])} ${r(R[2][1])} ${r(R[2][2])} ${r(t[2])} ]\n` +
+    `[ ${r(0)} ${r(0)} ${r(0)} ${r(1)} ]`;
+}
+
+thetaEl.addEventListener('input', update);
+xtEl.addEventListener('input', update);
+ytEl.addEventListener('input', update);
+ztEl.addEventListener('input', update);
+btnTR.addEventListener('click', () => { order = 'tr'; setActiveButtons(); update(); });
+btnRT.addEventListener('click', () => { order = 'rt'; setActiveButtons(); update(); });
+Object.keys(axisButtons).forEach(k => axisButtons[k].addEventListener('click', () => { axis = k; setActiveButtons(); update(); }));
+
+setActiveButtons();
+update();
+</script>
+</body>
+</html>

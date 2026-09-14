@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Homogeneous Transform Explorer — RAS 212</title>
+<style>
+  :root {
+    --accent: #512888;
+    --accent-light: #E6E1EF;
+    --bg: #ffffff;
+    --surface: #F4F1F8;
+    --text: #1B1B1B;
+    --text-muted: #5F5E5A;
+    --border: #D3D1C7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #AFA9EC;
+      --accent-light: #26215C;
+      --bg: #1a1a1a;
+      --surface: #232323;
+      --text: #EDEDED;
+      --text-muted: #A0A0A0;
+      --border: #3a3a3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Lucida Sans", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    line-height: 1.6;
+  }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  p.lead { color: var(--text-muted); margin-top: 0; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row label {
+    width: 56px;
+    font-size: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .row output {
+    min-width: 52px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: "Courier New", monospace;
+  }
+  .toggles { display: flex; gap: 8px; margin-top: 4px; }
+  .toggles button {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 10px 8px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .toggles button.active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  svg { width: 100%; height: auto; display: block; margin: 1rem 0; }
+  .matrix-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .matrix-box .caption { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .matrix-box pre {
+    font-family: "Courier New", monospace;
+    font-size: 15px;
+    margin: 0;
+    line-height: 1.7;
+  }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); margin-top: 0.5rem; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 3px; display: inline-block; border-radius: 2px; }
+  footer { margin-top: 2.5rem; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>2D Homogeneous Transform Explorer</h1>
+<p class="lead">RAS 212 — Module 4: drag the sliders to see how rotation and translation combine into a single matrix, and how the transformed frame lands differently depending on which order you apply them in.</p>
+
+<div class="panel">
+  <div class="row">
+    <label for="theta">&theta;</label>
+    <input type="range" id="theta" min="-180" max="180" step="5" value="40">
+    <output id="theta-out">40&deg;</output>
+  </div>
+  <div class="row">
+    <label for="xt">x_t</label>
+    <input type="range" id="xt" min="-2" max="2" step="0.25" value="1">
+    <output id="xt-out">1.00</output>
+  </div>
+  <div class="row">
+    <label for="yt">y_t</label>
+    <input type="range" id="yt" min="-2" max="2" step="0.25" value="0.5">
+    <output id="yt-out">0.50</output>
+  </div>
+  <div class="toggles">
+    <button id="order-tr" class="active">Rotate, then translate</button>
+    <button id="order-rt">Translate, then rotate</button>
+  </div>
+</div>
+
+<svg viewBox="0 0 300 260">
+  <g transform="translate(150,140) scale(1,-1)">
+    <line x1="-140" y1="0" x2="140" y2="0" stroke="var(--border)" stroke-width="1"/>
+    <line x1="0" y1="-100" x2="0" y2="100" stroke="var(--border)" stroke-width="1"/>
+    <line x1="0" y1="0" x2="40" y2="0" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="0" y1="0" x2="0" y2="40" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <circle cx="40" cy="40" r="3" fill="var(--text-muted)"/>
+    <line id="xline" x1="0" y1="0" x2="40" y2="0" stroke="#7F4FE0" stroke-width="2.5"/>
+    <line id="yline" x1="0" y1="0" x2="0" y2="40" stroke="#0F6E56" stroke-width="2.5"/>
+    <circle id="pdot" cx="40" cy="40" r="4" fill="#D85A30"/>
+  </g>
+</svg>
+<div class="legend">
+  <span><span class="swatch" style="background:#7F4FE0"></span>transformed x&prime;</span>
+  <span><span class="swatch" style="background:#0F6E56"></span>transformed y&prime;</span>
+  <span><span class="swatch" style="background:#D85A30;border-radius:50%;width:8px;height:8px;"></span>point P = (1, 1)</span>
+  <span><span class="swatch" style="background:var(--text-muted)"></span>original frame</span>
+</div>
+
+<div class="matrix-box">
+  <div class="caption">Homogeneous transform matrix T</div>
+  <pre id="matrix"></pre>
+</div>
+
+<footer>
+  Built for K-State Salina RAS 212. Every transform tf2 publishes on a real robot is this same matrix, just automated — a lookup between two non-adjacent frames is the chain product of the matrices in between.
+</footer>
+
+<script>
+const thetaEl = document.getElementById('theta');
+const xtEl = document.getElementById('xt');
+const ytEl = document.getElementById('yt');
+const thetaOut = document.getElementById('theta-out');
+const xtOut = document.getElementById('xt-out');
+const ytOut = document.getElementById('yt-out');
+const btnTR = document.getElementById('order-tr');
+const btnRT = document.getElementById('order-rt');
+const xline = document.getElementById('xline');
+const yline = document.getElementById('yline');
+const pdot = document.getElementById('pdot');
+const matrixEl = document.getElementById('matrix');
+let order = 'tr';
+
+function setActive() {
+  btnTR.classList.toggle('active', order === 'tr');
+  btnRT.classList.toggle('active', order === 'rt');
+}
+
+function update() {
+  const deg = parseFloat(thetaEl.value);
+  const xt = parseFloat(xtEl.value);
+  const yt = parseFloat(ytEl.value);
+  thetaOut.textContent = Math.round(deg) + '\u00b0';
+  xtOut.textContent = xt.toFixed(2);
+  ytOut.textContent = yt.toFixed(2);
+
+  const rad = deg * Math.PI / 180;
+  const c = Math.cos(rad), s = Math.sin(rad);
+  let a, b, cc, d, e, f;
+  if (order === 'tr') {
+    a = c; b = s; cc = -s; d = c; e = xt; f = yt;
+  } else {
+    a = c; b = s; cc = -s; d = c;
+    e = c * xt - s * yt;
+    f = s * xt + c * yt;
+  }
+
+  const scale = 40;
+  xline.setAttribute('x1', (e * scale).toFixed(2));
+  xline.setAttribute('y1', (f * scale).toFixed(2));
+  xline.setAttribute('x2', (e * scale + a * scale).toFixed(2));
+  xline.setAttribute('y2', (f * scale + b * scale).toFixed(2));
+  yline.setAttribute('x1', (e * scale).toFixed(2));
+  yline.setAttribute('y1', (f * scale).toFixed(2));
+  yline.setAttribute('x2', (e * scale + cc * scale).toFixed(2));
+  yline.setAttribute('y2', (f * scale + d * scale).toFixed(2));
+
+  const px = a * 1 + cc * 1 + e;
+  const py = b * 1 + d * 1 + f;
+  pdot.setAttribute('cx', (px * scale).toFixed(2));
+  pdot.setAttribute('cy', (py * scale).toFixed(2));
+
+  const r = n => n.toFixed(2).padStart(6, ' ');
+  matrixEl.textContent =
+    `[ ${r(a)} ${r(cc)} ${r(e)} ]\n[ ${r(b)} ${r(d)} ${r(f)} ]\n[ ${r(0)} ${r(0)} ${r(1)} ]`;
+}
+
+thetaEl.addEventListener('input', update);
+xtEl.addEventListener('input', update);
+ytEl.addEventListener('input', update);
+btnTR.addEventListener('click', () => { order = 'tr'; setActive(); update(); });
+btnRT.addEventListener('click', () => { order = 'rt'; setActive(); update(); });
+
+setActive();
+update();
+</script>
+</body>
+</html>
