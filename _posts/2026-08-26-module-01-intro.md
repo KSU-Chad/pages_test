@@ -1,6 +1,6 @@
 ---
 title: "Module 1 — Introduction & ROS 2 Overview"
-date: 2026-01-12 09:00:00 -0600
+date: 2026-08-26 09:00:00 -0500
 categories: [Module 01, Introduction]
 tags: [ros2, jazzy, linux, setup]
 pin: false
