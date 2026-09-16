@@ -65,6 +65,7 @@ RAS 212 — Introduction to ROS 2
 
 - Colcon, workspaces, packages — your code has a home
 - Your first publisher/subscriber pair, in both Python and C++
+- Services, custom interfaces, and QoS are coming later this semester, right before hardware — not forgotten, just resequenced
 
 ---
 
@@ -156,6 +157,12 @@ YAML indentation errors fail silently or with a confusing error far from the act
 
 ---
 
+## ✅ Checkpoint
+
+**What's one thing a launch file lets you do that running `ros2 run` by hand doesn't?**
+
+---
+
 ## Now, the Real Focus: Transforms
 
 > Everything a robot does depends on knowing where its parts are, relative to each other and to the world.
@@ -164,9 +171,9 @@ YAML indentation errors fail silently or with a confusing error far from the act
 
 ## Why Transforms Matter
 
-- A robot arm's gripper position keeps changing relative to the base. How does the controller know where the gripper actually is in the world, not just relative to the joint above it?
-- A camera mounted on the rover spots a rock sample, but it's the arm that has to reach it. How do we turn "camera saw it 30cm to the left" into "arm, move to this exact point"?
-- Both problems need the same tool: a way to convert a position described from one point of view (camera, joint, sensor) into a different point of view (arm base, rover base, world)
+- Two robots exploring an area — one finds something interesting. How does the *other* robot know how to get there?
+- A camera spots a target, but it's a robotic arm that has to move to it. How do we translate "camera saw it here" into "arm, move there"?
+- Both problems need the same tool: a way to convert a position described from one point of view into a different point of view
 
 ---
 
@@ -182,11 +189,34 @@ YAML indentation errors fail silently or with a confusing error far from the act
 
 ---
 
+## Points vs. Vectors — Not the Same Thing
+
+- A **point** is a location. You cannot add two points together — "chair plus doorway" means nothing.
+- A **vector** is a displacement — a "how to get from here to there." Vectors *can* be added, subtracted, scaled.
+- The difference between two points is a vector. A point plus a vector gives you a new point.
+- Why this matters: when tf2 gives you a transform, it's handing you something closer to a vector (a displacement) — applying it to a point is what actually moves that point somewhere new
+
+---
+
+## Right-Handed Coordinate Frames
+
+- Draw the x-axis first. The y-axis is the x-axis swung 90 degrees **counterclockwise**. That's the whole rule.
+- This is called a **right-handed** frame, and ROS assumes it everywhere, without exception
+- You won't build frames the other way in this course, but the term will come up again — now you know what it means
+
+---
+
 ## The Tree Structure Rule
 
-- Every frame is defined relative to **exactly one** parent frame (base_link)
+- Every frame is defined relative to **exactly one** parent frame
 - Any frame can have any number of *children*
 - This naturally forms a tree — and if every frame in the tree is connected, you can convert a point from any frame to any other frame
+
+---
+
+## ✅ Checkpoint
+
+**Name three frames a mobile robot might have.**
 
 ---
 
@@ -220,7 +250,7 @@ Stack those two new directions as columns, and that's the whole matrix:
 <p style="text-align:right; font-size:0.85em; margin-top:0.4em;"><a href="{{ '/assets/interactives/transforms_2d.html' | relative_url }}" target="_blank">Open full-screen ↗</a></p>
 </div>
 
-*(The same tool above is used for the next two demos too — rotation only, then translation, then the order toggle.)*
+*(The same tool above is used for the next two demos too — rotation only, then translation, then the pivot-point toggle.)*
 
 ---
 
@@ -247,20 +277,29 @@ Stack those two new directions as columns, and that's the whole matrix:
 
 ## The One Idea That Actually Matters: Order
 
-**Rotating then translating is not the same as translating then rotating.**
+**Rotating around your own new location is not the same as rotating around the world origin.**
 
-- Start at (1, 0). Rotate 90 degrees: you're at (0, 1). Translate by (2, 0): you end at (2, 1).
-- Start at (1, 0). Translate by (2, 0) first: you're at (3, 0). Rotate 90 degrees about the origin: you end at (0, 3).
-
-(2, 1) is not (0, 3) — same two operations, different order, completely different result.
+- Translate to (x_t, y_t), then spin in place: the origin stays exactly at (x_t, y_t) — rotating a frame about its own origin never moves that origin, only its orientation
+- Translate to (x_t, y_t), then rotate the *whole thing* about the world origin instead: the point sweeps along an arc, like it's on the end of an arm pinned at (0, 0)
+- Same rotation angle, same translation distance — genuinely different final position depending on which point the rotation pivots around
+- "Rotate in place" is the convention `static_transform_publisher` and URDF both use
 
 ---
 
-## 🖥️ Live Demo: Toggle the Order
+## 🖥️ Live Demo: Toggle the Pivot Point
 
 - Set theta, x_t, y_t to whatever you like
-- Predict out loud which way you think the frame will land
-- Click the order toggle — watch it land somewhere else entirely
+- Predict out loud where the origin marker will land for each button
+- Click between "rotate in place" and "rotate about world origin" — watch the origin itself either stay put or sweep along an arc
+- **Heads up:** it's genuinely easy to get turned around here, even for people comfortable with matrices — don't worry if your first prediction is wrong
+
+---
+
+## ✅ Checkpoint
+
+**Before I toggle the order button — which way do you think the frame moves?**
+
+*(Ask this every time, before revealing. It's the whole lesson.)*
 
 ---
 
@@ -277,6 +316,12 @@ Stack those two new directions as columns, and that's the whole matrix:
 
 ---
 
+## ✅ Checkpoint
+
+**When you rotate about the Z axis specifically, which coordinate stays unchanged? Why does that make sense?**
+
+---
+
 ## Why ROS Needs Any of This
 
 - A real robot has dozens of frames — wheels, sensors, joints, cameras
@@ -289,6 +334,15 @@ Stack those two new directions as columns, and that's the whole matrix:
 
 - **Static:** doesn't change over time — broadcast once, assumed correct until updated
 - **Dynamic:** may change over time — the broadcaster is expected to keep publishing fresh values
+- Why the distinction matters: a robust system can flag an error if a *dynamic* transform goes stale, but a static one is never expected to update
+
+---
+
+## One More Thing: This Isn't Just for Arms
+
+- Wednesday's lab uses a manipulator arm as the moving-robot example — not because this is an arms course, but because an arm makes the idea easiest to *see*: each joint is one clean rotation, chained to the next
+- The exact same idea (a chain of transforms, computed from moving parts) is what figures out a wheeled robot's position from how far its wheels have turned — that's called **odometry**, and you'll meet it for real on the MentorPi later this semester
+- **Forward kinematics** (arm world): given the joint angles, where's the gripper? **The mobile-robot version:** given the wheel motion, where's the robot? Same underlying question, different hardware
 
 ---
 
@@ -302,7 +356,20 @@ Stack those two new directions as columns, and that's the whole matrix:
 
 ---
 
+## Preview: Wednesday
+
+**Same ideas, live, in ROS 2.**
+
+- `static_transform_publisher`, RViz2, `robot_state_publisher`, `joint_state_publisher_gui`, `tf2_tools`
+- Then straight into lab — see the companion lab handout
+
+---
+
 # Wednesday — Transforms, Live
+
+*Held in the lab space. Walk through each demo live, then transition straight into lab time.*
+
+---
 
 ## Recap: Monday
 
@@ -396,6 +463,70 @@ Re-run the first command with a bigger rotation:
 
 ---
 
+## URDF: The Same Tree, Written Down
+
+- You just spent an hour building a frame tree by hand with `static_transform_publisher` — parent, child, parent, child
+- A **URDF** file is that exact same tree, written down once, for a whole robot: a `<link>` is a rigid piece, a `<joint>` connects two links and says how one can move relative to the other
+- `robot_state_publisher` reads this file and does the `static_transform_publisher` work for you, automatically, for every link in the tree
+
+---
+
+## Inside a `<link>`
+
+- **`visual`** — what it looks like in RViz (a box, cylinder, or mesh)
+- **`collision`** — the (often simplified) shape used for collision checking
+- **`inertial`** — mass and how it's distributed, used for physics — matters for Gazebo, not for RViz alone
+
+---
+
+## Joint Types
+
+| Type | Motion |
+|---|---|
+| `fixed` | none — rigidly bolted together |
+| `revolute` | rotates, with limited range (like an elbow) |
+| `continuous` | rotates, unlimited (like a wheel) |
+| `prismatic` | slides along a straight line |
+
+---
+
+## The `<origin>` Tag Is Monday's Matrix, For Real
+
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">&lt;origin xyz="0.5 0 0.1" rpy="0 0 0"/&gt;</pre>
+</div>
+
+- `xyz` first, then `rpy` — translate in the **parent's** axes, then rotate. Origin stays put, then spins in place.
+- That's the exact convention from this morning's "rotate in place" button — you already know how to read this
+
+---
+
+## 🖥️ Live Demo: Reading the Actual File
+
+Open `example_robot.urdf.xacro` from the repo you're about to use in lab. Walk through it together:
+
+- **`base_link`** — a box, the root of the tree, no parent
+- **`slider_link`** — another box, connected to `base_link` by `slider_joint`, a **prismatic** joint (slides along the top)
+- **`arm_link`** — a cylinder, connected to `slider_link` by `arm_joint`, a **revolute** joint (rotates, limited range) — this is the one the sliders will move most obviously in lab
+- **camera link** — connected by a **fixed** joint, just for organization (a separate frame is clearer than piling visuals onto the arm)
+
+---
+
+## A Preview, Not a Lesson: Xacro
+
+- Notice this file is `.urdf.xacro`, not plain `.urdf` — it uses **properties** and **macros** (see `example_include.xacro`) so inertia math isn't retyped for every link
+- Full Xacro authoring — writing your own macros, building a robot from scratch — is next module
+- Today, just recognize that it exists and does some of the tedious math for you
+
+---
+
+## ✅ Checkpoint
+
+**Looking at the file: which joint do you expect to move the *most* when you drag the sliders in lab — `slider_joint` or `arm_joint`? Why?**
+
+---
+
 ## 🖥️ Live Demo: Bringing Up a Moving Robot
 
 <div class="term">
@@ -444,6 +575,14 @@ Re-run the first command with a bigger rotation:
 - Listens for a few seconds, then generates `frames.pdf` in your current directory
 - Shows every frame, its parent, and how recently it was broadcast
 - Arrow direction here matches the plain-language "parent → child" description from Monday — the opposite of RViz's convention
+
+---
+
+## What You Just Generated Has a Name: a Pose Graph
+
+- Each frame is a node. Each known transform is a directed edge between two nodes.
+- If two frames aren't directly connected, `tf2` finds a **path** through the graph and chains the transforms along it — composing forward edges, and reversing (inverting) any edge it has to traverse backwards
+- This is exactly what `lookupTransform` is doing every time you ask "where is frame A relative to frame B" — walking the graph you just generated
 
 ---
 
