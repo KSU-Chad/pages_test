@@ -124,10 +124,13 @@
     <output id="yt-out">0.50</output>
   </div>
   <div class="toggles">
-    <button id="order-tr" class="active">Rotate, then translate</button>
-    <button id="order-rt">Translate, then rotate</button>
+    <button id="order-tr" class="active">Translate, then rotate in place</button>
+    <button id="order-rt">Translate, then rotate about world origin</button>
   </div>
 </div>
+<p style="font-size:13px;color:var(--text-muted);margin:0 0 1rem;">
+  <strong>"Rotate in place"</strong>: the origin moves to (x_t, y_t) and stays there — rotating a frame about its own origin never moves that origin, it only spins the axes. This is the convention <code>static_transform_publisher</code> and URDF's <code>&lt;origin&gt;</code> both use. <strong>"Rotate about world origin"</strong> is the contrasting case: after translating, the whole point gets swept around the origin like it's on the end of an arm pinned at (0,0) — notice the origin marker itself moves along an arc instead of staying put.
+</p>
 
 <svg viewBox="0 0 300 260">
   <g transform="translate(150,140) scale(1,-1)">
