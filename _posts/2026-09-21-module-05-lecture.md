@@ -104,7 +104,7 @@ Two reasons:
 </div>
 
 - One root tag, `<robot>`, holding everything else — set the `name` attribute once
-- 🔗 Full spec: [wiki.ros.org/urdf/XML](http://wiki.ros.org/urdf/XML)
+- 🔗 Full spec: [wiki.ros.org/urdf/XML](https://wiki.ros.org/urdf/XML)
 
 ---
 
@@ -133,7 +133,7 @@ Two reasons:
 - **Visual** — what you see in RViz/Gazebo: Visual — what you see in RViz/Gazebo: `<geometry>` (`box`/`cylinder`/`sphere`/`mesh`), an `<origin>` offset, a `<material>` (color)
 - **Collision** — geometry used for physics collision checks; often copy-pasted from visual, sometimes simplified for computation ()
 - **Inertial** — mass, center of mass (`origin`), and the rotational [inertia matrix](https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor) used for physics, matters for Gazebo not RViz
-- 🔗 [wiki.ros.org/urdf/XML/link](http://wiki.ros.org/urdf/XML/link) — every optional attribute, including `contact_coefficient` for advanced friction/restitution tuning
+- 🔗 [wiki.ros.org/urdf/XML/link](https://wiki.ros.org/urdf/XML/link) — every optional attribute, including `contact_coefficient` for advanced friction/restitution tuning
 
 ## Moment of Inertia: The Confusing Part
 
@@ -204,7 +204,7 @@ Every joint needs:
 - **Type** — `fixed`, `prismatic`, `revolute`, or `continuous`
 - **Parent** and **child** links
 - **Origin** — the relationship between the two links, before any motion is applied
-- 🔗 [wiki.ros.org/urdf/XML/joint](http://wiki.ros.org/urdf/XML/joint) — the full spec, including optional `dynamics` (damping/friction), `safety_controller`, `calibration`, and `mimic` tags for advanced use cases we won't need this semester
+- 🔗 [wiki.ros.org/urdf/XML/joint](https://wiki.ros.org/urdf/XML/joint) — the full spec, including optional `dynamics` (damping/friction), `safety_controller`, `calibration`, and `mimic` tags for advanced use cases we won't need this semester
 
 ---
 
@@ -276,7 +276,7 @@ Every joint needs:
 
 <div class="term">
 <div class="term-dots"><span></span><span></span><span></span></div>
-<pre class="term-body">&lt;robot xmlns:xacro="http://www.ros.org/wiki/xacro"&gt;</pre>
+<pre class="term-body">&lt;robot xmlns:xacro="https://www.ros.org/wiki/xacro"&gt;</pre>
 </div>
 
 ---
