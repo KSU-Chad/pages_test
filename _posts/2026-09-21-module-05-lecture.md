@@ -164,7 +164,7 @@ Two reasons:
 
 **A camera bolted rigidly to a chassis — does it need its own link? Why or why not?**
 
-<details>
+<details markdown="1">
 <summary>Answer</summary>
 
 Yes — it needs both a `<link>` and a `<joint>`.
@@ -258,7 +258,7 @@ Every joint needs:
 
 **Name one joint that should be `continuous` and one that should be `revolute`, from a robot you can picture in your head.**
 
-<details>
+<details markdown="1">
 <summary>Answer</summary>
 
 - **Continuous**: a wheel joint on a mobile robot that spins freely with no rotational limits.
