@@ -1,6 +1,6 @@
 ---
 title: "Module 5 — URDF: Describing a Robot From Scratch"
-date: 2026-02-02 13:00:00 -0600
+date: 2026-09-21 13:00:00 -0500
 categories: [Module 05, URDF]
 tags: [ros2, urdf, xacro, links, joints, rviz]
 pin: false
@@ -146,6 +146,7 @@ Two reasons:
 - Collision checking runs constantly during simulation, every physics timestep needs to ask "is anything touching?"
 - A detailed mesh (say, a scanned wheel with tread pattern) is expensive to check against; a plain cylinder is nearly free
 - Rule of thumb: visual geometry can be as detailed as you want, since RViz only draws it. Collision geometry should be the *simplest shape that's still roughly accurate* — that trade-off is a deliberate design choice, not laziness
+  
 ![Simplified Calculations](/assets/cow_aerodynamics.jpg)
 
 
