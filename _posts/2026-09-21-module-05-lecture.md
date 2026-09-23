@@ -346,6 +346,12 @@ Xacro helps enforce DRY (Don't Repeat Yourself) in URDF. Repeating the same valu
 
 ---
 
+## Working with URDF files
+
+Xacro allows us to combine the multiple files into one robot_description topic as shown here:
+[Working with URDF files](https://beta.articulatedrobotics.xyz/tutorials/mobile-robot/concept-design/concept-urdf#working-with-urdf-files)
+
+
 
 ## ⚠️ Common Pitfall
 
@@ -363,34 +369,46 @@ Don't chase perfect inertia values by hand. Unless you're designing a precision 
 
 ---
 
-## Preview: Wednesday
-
-**Build a real robot from scratch, a differential-drive mobile robot.**
-
-- `base_link`, a chassis, two driven wheels, a caster
-- Then straight into lab — see the companion lab handout
-
----
-
 # Wednesday — Building a Robot From Scratch
-
-*Held in the lab space. Walk through each step live, then transition straight into lab time.*
-
----
 
 ## Recap: Monday
 
 - `<link>` carries visual/collision/inertial; `<joint>` carries type/parent/child/origin/axis/limits
 - Xacro properties and macros keep values correct in one place instead of scattered everywhere
-- Today: write all of this for a real robot, not a toy example
+- Today: create a robot_description to test in rviz
 
 ---
 
 ## Differential-Drive Robots
 
 - Two driven wheels (left and right) control all motion; other wheels just keep it stable and can spin freely (**caster wheels**)
-- Popular because it's simple to build and control, and it can turn on the spot — no three-point turns
+- Popular because it's simple to build and control, and it can turn on the spot
 - The TurtleBot family (a common ROS education robot) comes in many shapes, but most are differential-drive underneath
+
+---
+
+## Beyond Differential Drive: What Else Is Out There?
+ 
+| Drive type | How it turns | Example |
+|---|---|---|
+| **Differential** (today's build) | Spin wheels at different speeds; can rotate in place | TurtleBot, most education robots |
+| **Ackermann** (car-like) | Front wheels pivot; can't spin in place | Full-size cars, some outdoor rovers |
+| **Omnidirectional** (Mecanum) | Angled rollers on each wheel; can strafe sideways without turning at all | **Your MentorPi, later this semester** |
+| **Skid-steer** | Both wheels/tracks on one side spin together, opposite the other side | Tanks, some outdoor/construction robots |
+ 
+Each of these needs a genuinely different `base_link` placement and joint structure — today's "put it at the wheel-rotation center" rule is specific to differential drive, not universal.
+ 
+---
+ 
+## ✅ Checkpoint
+ 
+**Based on the table above, why can't an Ackermann (car-like) robot use `base_link` at "the point it rotates around" the way we will today?**
+ 
+<details markdown="1">
+<summary>Answer</summary>
+Because a car-like robot doesn't rotate around a single fixed point at all — it has to move forward or backward while turning (it can't spin in place). There isn't a stationary "rotation center" to put `base_link` at the way there is for a differential-drive robot; `base_link` placement for Ackermann steering is a genuinely different, harder design problem.
+ 
+</details>
 
 ---
 
@@ -398,23 +416,54 @@ Don't chase perfect inertia values by hand. Unless you're designing a precision 
 
 - The main coordinate frame is always called **`base_link`** (REP 105)
 - Orientation is always **X-forward, Y-left, Z-up** (REP 103)
-- These aren't optional style choices — other ROS packages (including ones you'll use later this semester) assume them
+- These aren't optional style choices, other ROS packages (including ones you'll use later this semester) require them
 
 ---
 
-## Wait — Isn't Our Robot Mecanum, Not Differential-Drive?
-
-- Yes. This exercise deliberately uses differential-drive anyway, because it's the simplest possible case to *learn the URDF-building process on* — two wheel joints, one clear kinematic story
-- Everything about *structure* (base_link placement, fixed vs. continuous joints, the chassis/wheel/caster pattern) transfers directly to the MentorPi
-- What changes for Mecanum: **four** wheel joints instead of two, and the wheels themselves are usually represented differently (mecanum rollers), which affects visual/collision geometry — but not the underlying tree-building process you're learning today
-
+## Getting Your Package: The Template Repo
+ 
+- Rather than starting from a blank folder, we'll use a pre-built template — [github.com/joshnewans/my_bot](https://github.com/joshnewans/my_bot)
+- Click the green **"Use this template"** button — this makes you a full copy you control, not a shared fork
+- Name your new repo. If you keep `my_bot`, you skip the renaming step next; otherwise pick your own name and remember it, you'll be substituting it everywhere
+- Choose public or private, your call
+---
+ 
+## Naming Your Package
+ 
+If you kept `my_bot`, skip this. If you renamed it:
+ 
+1. Open GitHub's built-in editor on your new repo (press the `.` key on the repo page)
+2. Open the Search panel (magnifying glass, or `Ctrl-Shift-F`) and replace every instance of `my_bot` with your new name
+3. While you're in there, fill in `package.xml`'s fields — your name, email, etc.
+4. Commit: open the Source Control panel, write a message like "Change project name," click the checkmark
+---
+ 
+## Setting Up Your Workspace
+ 
+On your development machine:
+ 
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">mkdir dev_ws
+cd dev_ws
+mkdir src
+cd src
+git clone git@github.com:your-username/my_bot.git
+cd ..
+colcon build --symlink-install</pre>
+</div>
+- `--symlink-install` links straight to your source files instead of copying them — most edits show up without rebuilding. (There's an exception, coming up next.)
 ---
 
 ## Quick Pipeline Recap
 
+[Working with URDF files](https://beta.articulatedrobotics.xyz/tutorials/mobile-robot/concept-design/concept-urdf#working-with-urdf-files)
+
 - `xacro` combines your files into one complete URDF
 - `robot_state_publisher` reads that and publishes `/robot_description` plus all the transforms
-- `joint_state_publisher_gui` fakes joint motion for testing, same as last module
+- `joint_state_publisher_gui` fakes joint motion for testing
+
+
 
 <div class="term">
 <div class="term-dots"><span></span><span></span><span></span></div>
@@ -504,11 +553,19 @@ If you build with `colcon build --symlink-install`, URDF edits update automatica
 - A simple frictionless **sphere**, connected to the **chassis** with a **fixed** joint
 - Positioned so its lowest point matches the bottom of the drive wheels — not physically realistic, but simple, and good enough for now
 
+
 ---
 
 ## ✅ Checkpoint
 
 **Why `continuous` for the drive wheels instead of `revolute`? Why `fixed` for the caster instead of leaving it off the chassis link directly?**
+
+
+<details markdown="1">
+<summary>Answer</summary>
+`continuous` because a drive wheel has no natural rotation limit, it should spin indefinitely in either direction, unlike a joint with a bounded range of motion. `fixed` for the caster because it isn't meant to move relative to the chassis at all; it gets its own link mainly so its collision/inertial properties can be specified separately from the chassis.
+ 
+</details>
 
 ---
 
