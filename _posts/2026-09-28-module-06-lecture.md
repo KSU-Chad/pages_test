@@ -89,14 +89,14 @@ RAS 212 — Introduction to ROS 2
  
 ## Method 1: Wheel Odometry
  
- ![No encoder vs encoder](/assets/encoder_drive.gif){: width="400"}
+ ![No encoder vs encoder](/assets/encoder_drive.gif)
 
 - **Encoders** on the motors/wheels count rotation — ticks per revolution, converted to wheel angle
 - Wheel angle × wheel radius = distance that wheel rolled
 - Cheap, fast (updates hundreds of times a second), and works in the dark, in a open space, anywhere
 - The weak point: it assumes the wheel rolled *without slipping* — any slip, bump, or wheel-size mismatch becomes an error the math can't see
 
-![Distance Traveled](/assets/rotation_distance.gif){: width="400"}
+![Distance Traveled](/assets/rotation_distance.gif)
 ---
  
 ## The Differential-Drive Math
