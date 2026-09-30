@@ -92,7 +92,7 @@ RAS 212 — Introduction to ROS 2
  ![No encoder vs encoder](/assets/encoder_drive.gif)
 
 - **Encoders** on the motors/wheels count rotation — ticks per revolution, converted to wheel angle
-- Wheel angle × wheel radius = distance that wheel rolled
+- Wheel angle **in radians** × wheel radius = distance that wheel rolled (arc length: `s = r × θ`) — using degrees instead of radians here gives a wrong answer
 - Cheap, fast (updates hundreds of times a second), and works in the dark, in a open space, anywhere
 - The weak point: it assumes the wheel rolled *without slipping* — any slip, bump, or wheel-size mismatch becomes an error the math can't see
 
@@ -250,7 +250,7 @@ Probably not exactly. Every small error — a bit of wheel slip, a slightly-off 
   - **`DiffDrive`** — the "driver." It reads velocity commands (`/cmd_vel`), turns them into wheel motion in the physics simulation, and reports back where the robot ended up (odometry)
   - **`JointStatePublisher`** — reports the real wheel joint positions, replacing the `joint_state_publisher_gui` slider that was faking them
 - `DiffDrive` also broadcasts a new frame, `odom`, marking where the robot started — the transform from `odom` to `base_link` is your live position estimate
-- A separate **bridge** (Wednesday) carries messages between Gazebo's topics and ROS's topics — the plugins live inside Gazebo, the bridge sits between the two worlds
+- A separate **bridge** carries messages between Gazebo's topics and ROS's topics — the plugins live inside Gazebo, the bridge sits between the two worlds
 
 ---
 
@@ -267,14 +267,6 @@ Probably not exactly. Every small error — a bit of wheel slip, a slightly-off 
 - The `DiffDrive` plugin computes odometry *kinematically* — from commanded/measured wheel velocity — not from actual wheel-ground contact physics
 - That means a simulated skid-steer robot's odometry comes out just as clean as a simulated differential-drive robot's, because the plugin never actually simulates the scrubbing or sliding
 - On a **real** skid-steer (or Mecanum) robot, that scrubbing is real, and it corrupts wheel-encoder-based odometry — the simulator is quietly lying to you about how accurate your odometry will be once you're on real hardware
-
----
-
-## Coming Back to This: MentorPi's Real Correction Factors
-
-- Your MentorPi has a documented `calibrate_params.yaml` with `linear_correction_factor` and `angular_correction_factor` — corrections for exactly this kind of real-world odometry drift
-- It ships pre-calibrated, but Hiwonder's own docs note it may need retuning if you see the robot drifting or not driving/turning exactly as commanded
-- We'll revisit this for real once we're driving the physical robot (or its accurate model in Gazebo) later this semester — today's plugin can't show you this problem, only real hardware can
 
 ---
 
@@ -296,7 +288,6 @@ Probably not exactly. Every small error — a bit of wheel slip, a slightly-off 
 </div>
 
 - `<gazebo reference="...">` targets one specific link or joint by name; a bare `<gazebo>` with no reference applies to the whole file
-- 🔗 [Articulated Robotics: Gazebo Simulation](https://articulatedrobotics.xyz/tutorials/mobile-robot/concept-design/concept-gazebo) — today's anchor resource, with full plugin XML and troubleshooting notes
 
 ---
 
@@ -310,7 +301,7 @@ Probably not exactly. Every small error — a bit of wheel slip, a slightly-off 
 
 ## Collision & Inertia, Properly
 
-- Back in Module 5, you applied inertia macros without necessarily calculating anything by hand — today, let's actually do the math those macros are hiding from you
+- Back in Module 5, you applied inertia macros without necessarily calculating anything by hand, but now let's see where that comes from
 - Two reasons this matters more here than it did in RViz: Gazebo's physics engine genuinely *uses* these numbers (RViz just ignores them), and there's a real formula mix-up worth avoiding before you go pull numbers from a reference book
 
 ---
@@ -384,21 +375,135 @@ Small mass, small radius — a tiny number, which makes sense for a lightweight 
 If your robot looks unstable or jitters excessively once it's driving in Gazebo, try adding damping to your joints:
 
 ```xml
-<dynamics damping="10.0" friction="10.0"/>
+<dynamics damping="0.5" friction="0.1"/>
 ```
 
 Placed inside the `<joint>` tag, alongside `<axis>` and `<limit>`. Higher values resist motion more — useful for taming a simulation that's technically correct but visually chaotic.
 
----
-
-
-## Summary
-
-- `/cmd_vel` and odometry are the same concepts you'll meet again on real hardware
-- A simple Gazebo plugin gets you driving today; `ros2_control` earns its complexity later, once real hardware exists
-- The `DiffDrive` plugin scales to skid-steer with more wheels, same math — but simulation hides the real-world scrubbing that corrupts odometry, which is exactly what MentorPi's correction factors exist to fix
-- You now know the actual rule for when a link needs its own `<inertial>` tag (fixed-joint merging), can calculate mass moment of inertia by hand for the three shapes you'll actually use, and know where to pull the same numbers from CAD if you modeled your robot there
-- Everything from last module (your URDF) carries forward unchanged — today only adds to it
+- 🔗 [SDF Format](https://sdformat.org/spec)
 
 ---
 
+
+## Building your package
+```
+ `colcon build --symlink-install`
+ ```
+- Normally, `colcon build` **copies** your source files into `install/` — edit the source, and the copy doesn't know
+- `--symlink-install` creates **links** to your source files instead of copies — most edits show up immediately, no rebuild needed
+- **The one exception:** a brand-new file has no link yet. Adding `gazebo_control.xacro` or a new bridge config still needs a rebuild the first time
+
+
+---
+ 
+## 🖥️ Live Demo: Spawning Your Robot in Gazebo
+ 
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">  --- Terminal 1 ---
+ros2 launch my_bot rsp.launch.py use_sim_time:=true
+  --- Terminal 2 ---
+ros2 launch ros_gz_sim gz_sim.launch.py gz_args:=empty.sdf
+  --- Terminal 3 ---
+ros2 run ros_gz_sim create -topic robot_description -name my_bot -z 0.1</pre>
+</div>
+
+- `use_sim_time` matters once Gazebo is providing the clock — everything in the system needs to agree on how to count time
+- `empty.sdf` gives you a flat ground plane — an actually empty world has no floor, and your robot falls forever
+- The small Z offset on spawn keeps the robot from clipping through the floor on landing
+---
+
+## Finding Your Way Around the Gazebo GUI
+ 
+- **Top-left file menu** (hamburger icon): save the world to a file, save/load your GUI layout, style settings
+- **Top-right plugins menu** (three dots): add GUI panels — the video recorder lives here, among others
+- **World Control panel**: play/pause/step the simulation
+- **Real-Time Factor (RTF)**, far right of the scene: compares sim time to real time — expand it to see the raw values plus iteration count
+- Right-click any entity in the scene for a context menu (move, delete, inspect)
+---
+## Closing Gazebo Cleanly
+ 
+- Close the Gazebo window itself, don't just Ctrl+C the terminal that launched it — a killed launch process can leave the simulation running invisibly in the background
+- If a second `gz sim` refuses to start or acts strangely, check for a leftover process before assuming your code broke:
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">ps aux | grep gz
+kill &lt;pid&gt;</pre>
+</div>
+
+---
+
+## The ROS ↔ Gazebo Bridge
+ 
+- Gazebo has its own internal topic system, separate from ROS's — a bridge node translates specific topics back and forth
+- You declare which topics need bridging (and which direction) in a small YAML config, then run the `parameter_bridge` node with it
+- `/cmd_vel` and `/odom` are the two you need today
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">
+# Command velocity subscribed to by DiffDrive plugin
+- ros_topic_name: "cmd_vel"
+  gz_topic_name: "cmd_vel"
+  ros_type_name: "geometry_msgs/msg/TwistStamped"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+# Odometry published by DiffDrive plugin
+- ros_topic_name: "odom"
+  gz_topic_name: "odom"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+</pre>
+</div>
+
+---
+
+## Why `teleop_twist_keyboard` Needs Two Extra Flags Today
+ 
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true -p use_sim_time:=true</pre>
+</div>
+
+- **`stamped:=true`** — the `DiffDrive` plugin expects a `TwistStamped` message (a `Twist` plus a timestamp), not the plain `Twist` teleop publishes by default. Forget this flag and teleop *looks* like it's running, but the robot never moves — no error, just silence.
+- **`use_sim_time:=true`** — same reasoning as the spawn command earlier: this node needs to agree with Gazebo about what time it is, or timestamps stop making sense together
+
+---
+
+## Saving Your Gazebo World
+ 
+- Top-left file menu → **Save World As** — writes the current world (your robot, its current pose, anything else in the scene) to an SDF file
+- Handy once you've got a setup worth returning to, instead of re-spawning from scratch every session
+- **To load it back:**
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">gz sim your_saved_world.sdf</pre>
+</div>
+
+---
+ 
+## Saving Your RViz Configuration
+ 
+- **File → Save Config As** saves your current displays (TF, RobotModel, Fixed Frame setting, everything) to a `.rviz` file
+- Without this, you're rebuilding the same display setup by hand every single session
+- **To load it back**, either from the GUI (**File → Open Config**) or straight from the command line:
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">rviz2 -d your_saved_config.rviz</pre>
+</div>
+
+- Worth doing once you have a setup you like — saving is only half the value if you never load it back
+---
+## Simulation Tuning
+ Covered in the lab activity today
+- Caster friction: disable friction on the caster sphere — it should roll freely, not drag
+- Torque/velocity limits: unlimited values make the sim feel unnaturally instant and jerky — small effort/velocity limits smooth this out
+- Test the robot behavior before adding these steps to see what they accomplish
+---
+## Today's Lab
+ 
+Hands-on robot driving:
+- GitHub credential overview
+- Read the [Simulating with Gazebo](https://beta.articulatedrobotics.xyz/tutorials/ready-for-ros/gazebo) information
+- Follow the [Gazebo Simulation tutorial](https://beta.articulatedrobotics.xyz/tutorials/mobile-robot/concept-design/concept-gazebo)
+---
