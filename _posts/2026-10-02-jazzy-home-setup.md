@@ -16,7 +16,7 @@ rebuild it after you download an updated version, not every single time.
 
 ## 1. Download and unzip
 
-[Download jazzy-lab.zip](/downloads/jazzy-lab.zip)
+[Download jazzy-lab.zip](/pages_test/downloads/jazzy-lab.zip)
 
 Unzip it anywhere on your computer (Documents, Desktop — wherever you'll
 remember). Inside you'll find:
