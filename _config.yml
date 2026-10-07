@@ -166,7 +166,7 @@ paginate: 10
 # `module_post_order` only affects the posts listed on module/category pages.
 # The settings are separate, so one page can be oldest-first while the other is newest-first.
 # Restart `bundle exec jekyll serve` after changing _config.yml so Jekyll reloads the values.
-home_post_order: oldest
+home_post_order: newest
 module_post_order: oldest
 
 # The base URL of your site
