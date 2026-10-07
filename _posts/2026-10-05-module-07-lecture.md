@@ -1,8 +1,8 @@
 ---
-title: "Module 7 — Meet the MentorPi: URDF, MecanumDrive & ros2_control"
+title: "Module 7 — Meet the MentorPi: URDF, MecanumDrive & Gazebo"
 date: 2026-10-05 11:00:00 -0500
 categories: [Module 07, MentorPi Simulation]
-tags: [ros2, mentorpi, mecanum, gazebo, ros2_control, urdf]
+tags: [ros2, mentorpi, mecanum, gazebo, urdf]
 pin: false
 ---
 
@@ -212,3 +212,159 @@ Systematic — it's the same every run, which points to something repeatable lik
 Hiwonder's own documentation doesn't walk through a Gazebo simulation workflow at all — their tutorials go straight from URDF to real-hardware SLAM mapping over VNC. Today's Gazebo setup is something **we're assembling ourselves** on top of their official URDF, not a path they've documented for us. Don't go looking for a Hiwonder tutorial that matches Wednesday's lab step by step — it doesn't exist.
  
 ---
+
+## The Plan: Two Packages
+ 
+- **`mentorpi_description`** is Hiwonder's package, copied into your repo and edited in place (only the collision shapes). It's the robot model: meshes and Xacro. Sim and real robot share it
+- **`mentorpi_bringup`** is a new package you create. It holds the launch files, the bridge config, and a wrapper xacro. It finds the model with `get_package_share_directory('mentorpi_description')`
+- Both live inside **`mentorpi/`**, your git repo: a plain folder (no `package.xml`) that `colcon` looks inside
+- Hiwonder's full repo gets cloned **outside** `src/`, as a read-only reference. Two packages with the same name in one workspace make `colcon` error out, Deep Freeze wipes the clone anyway, and you can't push to Hiwonder's repo. Your own GitHub repo is what survives
+- Same split as the real stack: "what the robot is" lives in one place, "how we run it" in another
+```
+src/
+└── mentorpi/                          # your git repo (a folder, not a package)
+    ├── mentorpi_description/          # copy of Hiwonder's, shared by sim and real
+    │   ├── urdf/
+    │   │   ├── mentorpi.xacro         # untouched
+    │   │   └── mecanum.xacro          # collision shapes edited
+    │   └── meshes/mecanum/*.STL
+    └── mentorpi_bringup/              # NEW, from ros2 pkg create
+        ├── launch/  (rsp.launch.py, launch_sim.launch.py)
+        ├── config/  (gz_bridge.yaml)
+        └── urdf/
+            ├── robot.urdf.xacro       # NEW: wrapper with a sim_mode argument
+            └── gazebo_control.xacro   # NEW: MecanumDrive + JointStatePublisher (sim only)
+```
+ 
+- Module 8 adds `launch_real.launch.py` and real-robot config to `mentorpi_bringup`, next to the simulation files. No third package
+---
+ 
+## 🖥️ Live Demo: Set Up the Packages
+ 
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">cd ~
+git clone https://github.com/Hiwonder/MentorPi.git mentorpi_ref
+mkdir -p ~/ros2_ws/src/mentorpi
+cp -r ~/mentorpi_ref/simulations/mentorpi_description ~/ros2_ws/src/mentorpi/
+cd ~/ros2_ws/src/mentorpi
+ros2 pkg create --build-type ament_python mentorpi_bringup
+mkdir -p mentorpi_bringup/launch mentorpi_bringup/config mentorpi_bringup/urdf</pre>
+</div>
+
+- The robot model is on Hiwonder's default branch, so a plain `git clone` works
+- The copied folder keeps the name `mentorpi_description`. `colcon` goes by the name inside `package.xml`, and a folder with a different name is confusing even when it builds
+- `ament_python` matches Hiwonder's own package, so the same `data_files` pattern in `setup.py` installs our folders
+---
+ 
+## 🖥️ Live Demo: Check the Robot Without Gazebo
+ 
+<div class="term">
+<div class="term-dots"><span></span><span></span><span></span></div>
+<pre class="term-body">cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
+export MACHINE_TYPE=MentorPi_Mecanum
+xacro src/mentorpi/mentorpi_bringup/urdf/robot.urdf.xacro sim_mode:=true &gt; /tmp/mentorpi.urdf
+check_urdf /tmp/mentorpi.urdf</pre>
+</div>
+
+- `xacro` expands the file into plain URDF. This is exactly what `robot_state_publisher` will do inside the launch file
+- `check_urdf` prints the link tree. A valid file shows `base_footprint` as the root, with one child, `base_link`
+- Under `base_link`: the four wheels, `depth_cam`, `imu_link`, and `lidar_frame`
+- `check_urdf` knows nothing about Gazebo. A pass means the model is valid, not that the simulation will work
+---
+ 
+## ✅ Checkpoint
+ 
+**Why does the xacro command above need `MACHINE_TYPE` exported, when we never export it before `ros2 launch`?**
+ 
+<details markdown="1">
+<summary>Answer</summary>
+`mentorpi.xacro` reads `$(env MACHINE_TYPE)` to decide between the Mecanum and Ackermann chassis. Run by hand, `xacro` inherits your terminal's environment, so you export it yourself. Our `rsp.launch.py` sets it in Python with `os.environ.setdefault('MACHINE_TYPE', 'MentorPi_Mecanum')`, so the launch file works without Hiwonder's `.typerc`.
+ 
+</details>
+---
+ 
+## Add the Control Plugin: `gazebo_control.xacro`
+ 
+A new file in `mentorpi_bringup/urdf/`:
+ 
+```xml
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <gazebo>
+    <plugin filename="gz-sim-mecanum-drive-system"
+            name="gz::sim::systems::MecanumDrive">
+      <front_left_joint>wheel_lf_Joint</front_left_joint>
+      <front_right_joint>wheel_rf_Joint</front_right_joint>
+      <back_left_joint>wheel_lb_Joint</back_left_joint>
+      <back_right_joint>wheel_rb_Joint</back_right_joint>
+      <wheelbase>0.1347</wheelbase>
+      <wheel_separation>0.1370</wheel_separation>
+      <wheel_radius>0.0325</wheel_radius>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_footprint</child_frame_id>
+      <topic>cmd_vel</topic>
+      <odom_topic>odom</odom_topic>
+      <tf_topic>tf</tf_topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher">
+      <topic>joint_states</topic>
+    </plugin>
+  </gazebo>
+</robot>
+```
+ 
+Then a small wrapper, `mentorpi_bringup/urdf/robot.urdf.xacro`, that loads the robot and adds the plugin only for simulation:
+ 
+```xml
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mentorpi">
+ 
+  <xacro:arg name="sim_mode" default="false"/>
+ 
+  <xacro:include filename="$(find mentorpi_description)/urdf/mentorpi.xacro"/>
+ 
+  <xacro:if value="$(arg sim_mode)">
+    <xacro:include filename="$(find mentorpi_bringup)/urdf/gazebo_control.xacro"/>
+  </xacro:if>
+ 
+</robot>
+```
+ 
+- Hiwonder's `mentorpi.xacro` stays untouched. The real robot will load the same wrapper with `sim_mode:=false` and simply not get the Gazebo plugin
+- Same idea as the `sim_mode` argument in the Articulated Robotics `robot.urdf.xacro`
+- `MecanumDrive` reads the command topic, drives the four wheels, and publishes odometry. `JointStatePublisher` publishes the wheel joint angles
+- A new file needs a rebuild even with `--symlink-install`, because symlinks only cover files that already existed
+---
+ 
+## The Launch Files
+ 
+- **`rsp.launch.py`** runs `robot_state_publisher` on our wrapper, `robot.urdf.xacro`. It has `use_sim_time` and `sim_mode` arguments, and passes `sim_mode` into the xacro
+- **`launch_sim.launch.py`** starts four things:
+  1. `rsp.launch.py`, with `use_sim_time` and `sim_mode` both forced to `true`
+  2. Gazebo, through `ros_gz_sim`'s own `gz_sim.launch.py`, with `-r` so the simulation starts running
+  3. The `create` node, which spawns the robot from the `/robot_description` topic
+  4. `parameter_bridge`, configured from `gz_bridge.yaml`
+- Same structure as the Module 6 launch file and as the Articulated Robotics tutorial. The only MentorPi-specific parts are the package names and the plugin
+---
+ 
+## The Bridge
+ 
+Gazebo has its own topics. The bridge copies selected ones to and from ROS:
+ 
+| Topic | ROS type | Direction |
+|---|---|---|
+| `clock` | `rosgraph_msgs/msg/Clock` | Gazebo → ROS |
+| `cmd_vel` | `geometry_msgs/msg/TwistStamped` | ROS → Gazebo |
+| `odom` | `nav_msgs/msg/Odometry` | Gazebo → ROS |
+| `tf` | `tf2_msgs/msg/TFMessage` | Gazebo → ROS |
+| `joint_states` | `sensor_msgs/msg/JointState` | Gazebo → ROS |
+ 
+- Only `cmd_vel` goes into Gazebo. Everything else is the simulator reporting back
+- The command is stamped, so teleop needs `-p stamped:=true`. A plain `Twist` publisher would reach the bridge and the robot would quietly not move
+---
+ 
+
