@@ -102,9 +102,9 @@ A service has two sides:
 - The **server** is a node that offers the service. It waits for requests and sends back responses
 - The **client** is a node (or you, from the command line) that sends one request and waits for the reply
 
-![Service - Single Client](https://docs.ros.org/en/jazzy/_images/Service-SingleServiceClient.gif)
+![Service - Single Client](assets/Service-SingleServiceClient.gif)
 
-![Service - Multiple Clients](https://docs.ros.org/en/jazzy/_images/Service-MultipleServiceClient.gif)
+![Service - Multiple Clients](assets/Service-MultipleServiceClient.gif)
 
 A service has a **type**, just like a topic. The type is a file that lists what goes in the request and what comes back. A `.srv` file has two halves split by `---`:
 
