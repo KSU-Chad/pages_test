@@ -564,8 +564,6 @@ def main(args=None):
 | `node.destroy_node()`, `rclpy.try_shutdown()` | Clean up and shut ROS down |
 
 - The tutorial version you saw earlier has no `try`. It works, but Ctrl+C prints an error trace. Ours handles it
-- You'll write this exact `main()` in every node this semester. It barely changes
-
 ---
 
 ## ✅ Checkpoint
@@ -697,7 +695,7 @@ def main(args=None):
 - `client.wait_for_service(timeout_sec=3.0)` checks the service exists, for up to three seconds. If it doesn't, we log an error and quit instead of freezing
 - `Trigger.Request()` builds the (empty) request. For `SetBool`, you'd write `request = SetBool.Request()` and then `request.data = False`
 - `call_async` sends the request and returns a **future**, which is a promise that an answer will arrive. `spin_until_future_complete` waits for it
-- `f'Response: {future.result().message}'` is an **f-string.** The `f` before the quote lets you put values inside `{ }` and they're filled in
+- `f'Response: {future.result().message}'` is an **f-string** (formatted string). The `f` before the quote lets you put values inside `{ }` and they're filled in
 
 ---
 
@@ -991,7 +989,6 @@ Work through the chain from where the data starts, and stop where it stops arriv
 
 ## Feature Branches
 
-- In Module 7 you practiced branches on a throwaway edit. Today you use one on real work
 - **The idea:** `main` always holds code that works. New work happens on its own branch. When it works, you merge it back
 - Why: if the new work breaks something, `main` is untouched. And a branch named `add-safety-gate` tells anyone looking at your repo what that work was
 
@@ -1027,18 +1024,6 @@ The flow for today's lab:
 
 ---
 
-## Today's Lab
-
-Hands-on, in the companion lab handout:
-- Log in to GitHub, set your git identity, and get your repo
-- Make a feature branch, `add-safety-gate`
-- Create `mentorpi_nodes` and start from a skeleton of the gate node, filling in each `TODO` one piece at a time
-- Add the gate to the simulation and run it
-- Test it with `ros2 service call` and `ros2 param set`
-- Write the small `/stop` client
-- Commit as you go, merge to `main`, and push
-
----
 
 ## Summary
 
