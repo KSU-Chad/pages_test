@@ -44,7 +44,21 @@ pin: false
 
 
 
-# Actions, Loops & rosbag2
+# Actions, Loops & rosbag2 (ros2 bag)
+
+## What Is an Action?
+
+- Actions are one of the communication types in ROS 2, built for **long-running tasks**
+- An action has three parts: a **goal**, **feedback**, and a **result**
+- Actions are built on **topics and services**. They work like a service, with two big differences:
+  - An action can be **canceled** while it's running
+  - An action gives **steady feedback**, where a service returns a single response
+- Actions use a **client-server model**, like the publisher-subscriber model from the topics lesson:
+  - An **action client** node sends a goal
+  - An **action server** node acknowledges the goal, then returns a stream of feedback and a final result
+- In our case, `ros2 action send_goal` is the client, and `drive_distance` is the server
+
+*Source: [ROS 2 Jazzy docs, Understanding actions](https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Actions/Understanding-ROS2-Actions.html)*
 
 ## The Plan
 
@@ -124,10 +138,14 @@ Here's the one we'll use. It comes from the Nav2 package, so we don't have to in
 
 ```
 # nav2_msgs/action/DriveOnHeading
+
+#Goal definition
 geometry_msgs/Point target
 float32 speed
 builtin_interfaces/Duration time_allowance
 ---
+
+#Error codes
 uint16 NONE=0
 uint16 UNKNOWN=720
 uint16 TIMEOUT=721
@@ -135,10 +153,13 @@ uint16 TF_ERROR=722
 uint16 COLLISION_AHEAD=723
 uint16 INVALID_INPUT=724
 
+#Results definition
 builtin_interfaces/Duration total_elapsed_time
 uint16 error_code
 string error_msg
 ---
+
+#Feedback definition
 float32 distance_traveled
 ```
 
@@ -147,8 +168,8 @@ float32 distance_traveled
 | **Goal** | `target` | A point. We'll use `target.x` as **how far to drive, in meters** |
 | **Goal** | `speed` | How fast to drive, in meters per second |
 | **Goal** | `time_allowance` | The most time we're allowed to take (a `Duration`: seconds and nanoseconds) |
-| **Result** | `total_elapsed_time` | How long the job took |
 | **Result** | `error_code` | A number: `0` is no error, `721` is `TIMEOUT`, `724` is `INVALID_INPUT` |
+| **Result** | `total_elapsed_time` | How long the job took |
 | **Result** | `error_msg` | A message in words |
 | **Feedback** | `distance_traveled` | How far we've gone so far, in meters |
 
