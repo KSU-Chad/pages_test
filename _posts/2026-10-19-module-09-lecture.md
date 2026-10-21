@@ -695,7 +695,6 @@ def main(args=None):
 
 ## Why Record?
 
-- Your robot is only in front of you some of the time. Gazebo takes a minute to start. Something fails once and never again
 - A **bag** is a recording of topics, with timestamps. You can play it back later, as if the robot were running, without the robot or the simulator
 - Uses:
   - **Debugging:** record when it fails, then study it calmly
