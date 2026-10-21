@@ -1,8 +1,8 @@
 ---
 title: "Module 9 — Actions, Loops & Recording Your Robot"
-date: 2026-10-16 15:00:00 -0500
+date: 2026-10-19 12:00:00 -0500
 categories: [Module 09, Actions & rosbag2]
-tags: [ros2, actions, rosbag2, python, rclpy, mentorpi, git]
+tags: [ros2, actions, rosbag2, python]
 pin: false
 ---
 
