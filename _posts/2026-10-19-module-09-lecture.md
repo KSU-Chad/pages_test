@@ -675,39 +675,6 @@ def main(args=None):
 
 ---
 
-## 🐛 Spot the Bugs
-
-This `execute` has three bugs. Find them on paper.
-
-```python
-    def execute(self, goal_handle):
-        target = goal_handle.request.target.x
-        speed = goal_handle.request.speed
-        start_x = self.x
-        start_y = self.y
-
-        while rclpy.ok():
-            traveled = math.hypot(self.x - start_x, self.y - start_y)
-            if traveled = target:
-                goal_handle.succeed()
-                break
-            self.send_speed(speed)
-            time.sleep(0.1)
-```
-
-<details markdown="1">
-<summary>Answers</summary>
-
-1. **`if traveled = target:`** uses `=`, which stores a value, instead of a comparison. Python stops with a `SyntaxError`. The intent was `>=`. (And `==` would be wrong too: a robot almost never lands on exactly the target distance, so use `>=`.)
-2. **No `self.send_speed(0.0)` before `break`.** The goal "succeeds," but the robot keeps driving at the last command.
-3. **No `return result`** (and no result object). The function has no way to give ROS a result, so the client gets an error when the goal finishes.
-
-Also missing, but not a crash: no time limit and no cancel check, so a stuck robot would loop forever.
-
-</details>
-
----
-
 ## Two Kinds of Timeout
 
 | | `time_allowance` | Watchdog |
